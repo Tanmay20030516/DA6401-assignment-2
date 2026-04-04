@@ -1,0 +1,12 @@
+data/annotations/
+data/images/
+data/annotations.tar.gz
+data/images.tar.gz
+tests/
+*.ipynb
+*.pth
+.venv/
+.DS_Store
+dump/
+tests/
+__pycache__/
