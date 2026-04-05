@@ -22,7 +22,7 @@ from models.multitask import MultiTaskPerceptionModel
 
 try:
     import wandb
-except ImportError:  # pragma: no cover - optional dependency at runtime
+except ImportError:
     wandb = None
 
 
@@ -581,7 +581,7 @@ def validate_multitask_bundle(checkpoint_dir: Path) -> None:
         )
         del bundle
         print("[multitask-check] All three checkpoints can be loaded by MultiTaskPerceptionModel.")
-    except Exception as error:  # pragma: no cover - best-effort validation
+    except Exception as error:
         print(f"[multitask-check] Failed to build unified model: {error}")
 
 
@@ -630,6 +630,7 @@ def main() -> None:
         lr=args.lr,
         weight_decay=args.weight_decay,
     )
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-6)
 
     print(f"[model] total_params={count_parameters(model):,}")
     print(f"[model] trainable_params={count_parameters(model, trainable_only=True):,}")
@@ -697,12 +698,12 @@ def main() -> None:
             f"val: {format_metrics(val_metrics)} | "
             f"time={epoch_time:.1f}s | checkpoint={status}"
         )
-
+        scheduler.step()
         if run is not None:
             run.log(
                 {
                     "epoch": epoch,
-                    "lr": optimizer.param_groups[0]["lr"],
+                    "lr": scheduler.get_last_lr()[0], #optimizer.param_groups[0]["lr"],
                     **{f"train/{key}": value for key, value in train_metrics.items()},
                     **{f"val/{key}": value for key, value in val_metrics.items()},
                 }

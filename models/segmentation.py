@@ -35,11 +35,11 @@ class VGG11UNet(nn.Module):
         # self.conv1 = nn.Conv2d(512, 1024, 1)  # we can reduce the params
         self.bn1 = nn.BatchNorm2d(num_features=1024)
         self.conv2 = nn.Conv2d(1024, 512, 3, padding=1)
-        # self.conv2 = nn.Conv2d(1024, 1024, 1)  # we can reduce the params
-        self.bn2 = nn.BatchNorm2d(num_features=1024)
+        # self.conv2 = nn.Conv2d(1024, 512, 1)  # we can reduce the params
+        self.bn2 = nn.BatchNorm2d(num_features=512)
 
         # decoder layers
-        self.trconv1 = nn.ConvTranspose2d(1024, 512, 2, stride=2)
+        self.trconv1 = nn.ConvTranspose2d(512, 512, 2, stride=2)
         self.conv11 = nn.Conv2d(
             1024, 512, 3, padding=1
         )  # conv after concatenating skip connection

@@ -11,3 +11,4 @@ dump/
 tests/
 __pycache__/
 *.zip
+wandb/
