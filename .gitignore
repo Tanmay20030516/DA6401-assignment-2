@@ -10,3 +10,4 @@ tests/
 dump/
 tests/
 __pycache__/
+*.zip
