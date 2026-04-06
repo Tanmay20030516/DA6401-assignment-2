@@ -34,9 +34,9 @@ class MultiTaskPerceptionModel(nn.Module):
         import gdown
         # classifier.pth = https://drive.google.com/file/d/1KpZNYwPLJW20yFWukZrjhxJjg7C5_4lo/view?usp=sharing
         # unet.pth = https://drive.google.com/file/d/1l6nPJCeOh3AJtCmDHoorlSANnMQQMClC/view?usp=sharing
-        # localizer.pth = https://drive.google.com/file/d/1Uj9yXmqXV3ktnUsCTw6CF_EopkWDczSZ/view?usp=sharing
+        # localizer.pth = https://drive.google.com/file/d/1zB7Ye8Rhn2G8UP-YdvEFHLUhw_rhEAsx/view?usp=sharing
         gdown.download(id="1KpZNYwPLJW20yFWukZrjhxJjg7C5_4lo", output=classifier_path, quiet=False)
-        gdown.download(id="1Uj9yXmqXV3ktnUsCTw6CF_EopkWDczSZ", output=localizer_path, quiet=False)
+        gdown.download(id="1zB7Ye8Rhn2G8UP-YdvEFHLUhw_rhEAsx", output=localizer_path, quiet=False)
         gdown.download(id="1l6nPJCeOh3AJtCmDHoorlSANnMQQMClC", output=unet_path, quiet=False)
         self.num_breeds = num_breeds
         self.seg_classes = seg_classes
