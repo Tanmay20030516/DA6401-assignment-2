@@ -12,3 +12,7 @@ tests/
 __pycache__/
 *.zip
 wandb/
+to-do.md
+log_segment_samples.py
+feat_mp_an.py
+.matplotlib/

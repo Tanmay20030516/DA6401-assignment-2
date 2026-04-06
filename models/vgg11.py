@@ -21,7 +21,6 @@ class VGG11Encoder(nn.Module):
             return nn.BatchNorm2d(c) if self.use_bn else nn.Identity()
         
         self.relu = nn.ReLU()
-        self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
 
         self.conv1 = nn.Conv2d(
             in_channels=self.in_channels,
@@ -30,6 +29,7 @@ class VGG11Encoder(nn.Module):
             padding=1,
         )
         self.bn1 = bn2d(64)
+        self.maxpool1 = nn.MaxPool2d(kernel_size=2, stride=2)
 
         self.conv2 = nn.Conv2d(
             in_channels=64,
@@ -38,21 +38,25 @@ class VGG11Encoder(nn.Module):
             padding=1
         )
         self.bn2 = bn2d(128)
+        self.maxpool2 = nn.MaxPool2d(kernel_size=2, stride=2)
 
         self.conv3 = nn.Conv2d(128, 256, 3, padding=1)
         self.bn3 = bn2d(256)
         self.conv4 = nn.Conv2d(256, 256, 3, padding=1)
         self.bn4 = bn2d(256)
+        self.maxpool3 = nn.MaxPool2d(kernel_size=2, stride=2)
 
         self.conv5 = nn.Conv2d(256, 512, 3, padding=1)
         self.bn5 = bn2d(512)
         self.conv6 = nn.Conv2d(512, 512, 3, padding=1)
         self.bn6 = bn2d(512)
+        self.maxpool4 = nn.MaxPool2d(kernel_size=2, stride=2)
 
         self.conv7 = nn.Conv2d(512, 512, 3, padding=1)
         self.bn7 = bn2d(512)
         self.conv8 = nn.Conv2d(512, 512, 3, padding=1)
         self.bn8 = bn2d(512)
+        self.maxpool5 = nn.MaxPool2d(kernel_size=2, stride=2)
 
     def forward(
         self, x: torch.Tensor, return_features: bool = False
@@ -73,14 +77,14 @@ class VGG11Encoder(nn.Module):
         x = self.relu(x)
         if return_features:
             features["skip1"] = x
-        x = self.maxpool(x)
+        x = self.maxpool1(x)
 
         x = self.conv2(x)
         x = self.bn2(x)
         x = self.relu(x)
         if return_features:
             features["skip2"] = x
-        x = self.maxpool(x)
+        x = self.maxpool2(x)
 
         x = self.conv3(x)
         x = self.bn3(x)
@@ -90,7 +94,7 @@ class VGG11Encoder(nn.Module):
         x = self.relu(x)
         if return_features:
             features["skip3"] = x
-        x = self.maxpool(x)
+        x = self.maxpool3(x)
 
         x = self.conv5(x)
         x = self.bn5(x)
@@ -100,7 +104,7 @@ class VGG11Encoder(nn.Module):
         x = self.relu(x)
         if return_features:
             features["skip4"] = x
-        x = self.maxpool(x)
+        x = self.maxpool4(x)
 
         x = self.conv7(x)
         x = self.bn7(x)
@@ -110,7 +114,7 @@ class VGG11Encoder(nn.Module):
         x = self.relu(x)
         if return_features:
             features["skip5"] = x
-        x = self.maxpool(x)  # our bottleneck features
+        x = self.maxpool5(x)  # our bottleneck features
 
         if return_features:
             return x, features
