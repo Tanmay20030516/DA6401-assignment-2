@@ -16,9 +16,9 @@ class MultiTaskPerceptionModel(nn.Module):
         num_breeds: int = 37,
         seg_classes: int = 3,
         in_channels: int = 3,
-        classifier_path: str = "classifier.pth",
-        localizer_path: str = "localizer.pth",
-        unet_path: str = "unet.pth",
+        classifier_path: str = "checkpoints/classifier.pth",
+        localizer_path: str = "checkpoints/localizer.pth",
+        unet_path: str = "checkpoints/unet.pth",
     ):
         """
         Initialize the shared backbone/heads using these trained weights.
