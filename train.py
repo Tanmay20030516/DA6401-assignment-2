@@ -317,7 +317,14 @@ def build_criterion(args: argparse.Namespace) -> nn.Module:
     if args.localization_loss == "mse":
         return nn.MSELoss()
     if args.localization_loss == "iou":
-        return IoULoss()
+        class CombinedLoss(nn.Module):
+            def __init__(self):
+                super(CombinedLoss, self).__init__()
+                self.mse = nn.MSELoss()
+                self.iou = IoULoss()
+            def forward(self, pred, target):
+                return self.mse(pred, target) + self.iou(pred, target)
+        return CombinedLoss()
     return nn.SmoothL1Loss(beta=1.0)
 
 
