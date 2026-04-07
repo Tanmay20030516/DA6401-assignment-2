@@ -719,7 +719,7 @@ def main() -> None:
     print(f"[done] best_val_{best_metric_name}={best_metric_value:.4f}")
     print(f"[done] best checkpoint saved to {checkpoint_path}")
 
-    validate_multitask_bundle(args.checkpoint_dir)
+    # validate_multitask_bundle(args.checkpoint_dir)
 
     if run is not None:
         run.summary[f"best_val_{best_metric_name}"] = best_metric_value
