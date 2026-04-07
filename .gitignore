@@ -16,3 +16,4 @@ to-do.md
 log_segment_samples.py
 feat_mp_an.py
 .matplotlib/
+log_detection_wandb.py
