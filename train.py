@@ -167,7 +167,6 @@ def parse_args() -> argparse.Namespace:
 
 
 def seed_everything(seed: int) -> None:
-    """Set seeds so short smoke tests are reproducible."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -176,7 +175,6 @@ def seed_everything(seed: int) -> None:
 
 
 def resolve_dataset_paths(dataset: OxfordIIITPetDataset, assignment_dir: Path) -> None:
-    """Manifest rows use assignment-root relative paths, so convert them once."""
     dataset.df = dataset.df.copy()
     for column in ("image_path", "mask_path", "xml_path"):
         if column not in dataset.df.columns:
@@ -187,7 +185,6 @@ def resolve_dataset_paths(dataset: OxfordIIITPetDataset, assignment_dir: Path) -
 
 
 def resolve_path_like(value: object, assignment_dir: Path) -> str:
-    """Resolve relative manifest paths without touching the sentinel `not_exist` value."""
     text = str(value)
     if text == "not_exist":
         return text
@@ -198,15 +195,8 @@ def resolve_path_like(value: object, assignment_dir: Path) -> str:
 
 
 def build_dataloader(
-    data_dir: Path,
-    split: str,
-    image_size: int,
-    batch_size: int,
-    shuffle: bool,
-    num_workers: int,
-    device: str,
-) -> DataLoader:
-    """Create one dataloader for a requested split."""
+    data_dir: Path, split: str, image_size: int,
+    batch_size: int, shuffle: bool, num_workers: int, device: str,) -> DataLoader:
     dataset = OxfordIIITPetDataset(root_dir=str(data_dir), split=split, image_size=image_size)
     resolve_dataset_paths(dataset, SCRIPT_DIR)
     return DataLoader(
@@ -219,7 +209,6 @@ def build_dataloader(
 
 
 def load_checkpoint_state(checkpoint_path: Path, map_location: str = "cpu") -> Dict[str, torch.Tensor]:
-    """Load a checkpoint that may be either a bare state_dict or a wrapped payload."""
     payload = torch.load(checkpoint_path, map_location=map_location)
     if isinstance(payload, dict) and "state_dict" in payload:
         return payload["state_dict"]
@@ -229,7 +218,6 @@ def load_checkpoint_state(checkpoint_path: Path, map_location: str = "cpu") -> D
 
 
 def load_encoder_weights(model: nn.Module, checkpoint_path: Path) -> None:
-    """Warm-start the encoder from a trained classifier checkpoint."""
     state_dict = load_checkpoint_state(checkpoint_path, map_location="cpu")
     encoder_state = {}
     for key, value in state_dict.items():
@@ -250,7 +238,6 @@ def load_encoder_weights(model: nn.Module, checkpoint_path: Path) -> None:
 
 
 def configure_freeze_strategy(model: nn.Module, strategy: str) -> None:
-    """Apply the requested transfer-learning policy to encoder-based models."""
     if not hasattr(model, "encoder"):
         return
 
@@ -280,7 +267,6 @@ def configure_freeze_strategy(model: nn.Module, strategy: str) -> None:
 
 
 def build_model(args: argparse.Namespace) -> nn.Module:
-    """Instantiate the requested model and apply optional transfer settings."""
     if args.task == "classification":
         model = VGG11Classifier(
             num_classes=NUM_CLASSES,
@@ -307,29 +293,68 @@ def build_model(args: argparse.Namespace) -> nn.Module:
 
 
 def build_criterion(args: argparse.Namespace) -> nn.Module:
-    """Select a loss that matches the chosen task."""
     if args.task == "classification":
         return nn.CrossEntropyLoss()
     if args.task == "segmentation":
-        return nn.CrossEntropyLoss()
+        class SegmentationLoss(nn.Module):
+            """" combined CE + dice loss (simple CE loss can cause issues due to more background class in image) """
+            def __init__(self, num_classes=3, eps=1e-6):
+                super(SegmentationLoss, self).__init__()
+                self.ce = nn.CrossEntropyLoss()
+                self.eps = eps
+                self.num_classes = num_classes
+
+            def dice_loss(self, logits, targets):
+                probs = torch.softmax(logits, dim=1)  # [B, C, H, W]
+                total = 0.0
+                for c in range(self.num_classes):
+                    p = probs[:, c]
+                    t = (targets == c).float()
+                    intersection = (p * t).sum()
+                    denom = p.sum() + t.sum()
+                    total += 1.0 - (2.0 * intersection + self.eps) / (denom + self.eps)
+                return total / self.num_classes
+
+            def forward(self, logits, targets):
+                return self.ce(logits, targets) + self.dice_loss(logits, targets)
+        
+        return SegmentationLoss(num_classes=NUM_SEGMENTS)
+        # return nn.CrossEntropyLoss()
+
     if args.localization_loss == "l1":
         return nn.L1Loss()
     if args.localization_loss == "mse":
         return nn.MSELoss()
     if args.localization_loss == "iou":
+        # class CombinedLoss(nn.Module):
+        #     def __init__(self):
+        #         super(CombinedLoss, self).__init__()
+        #         self.mse = nn.MSELoss()
+        #         self.iou = IoULoss()
+        #     def forward(self, pred, target):
+        #         return self.mse(pred, target) + self.iou(pred, target)
         class CombinedLoss(nn.Module):
-            def __init__(self):
+            def __init__(self, image_size=224, alpha=1.0, beta=1.0):
                 super(CombinedLoss, self).__init__()
-                self.mse = nn.MSELoss()
                 self.iou = IoULoss()
+                self.smooth_l1 = nn.SmoothL1Loss(beta=1.0)
+                self.image_size = image_size
+                self.alpha = alpha  # weight for iou loss
+                self.beta = beta    # weight for smooth l1 loss
+
             def forward(self, pred, target):
-                return self.mse(pred, target) + self.iou(pred, target)
-        return CombinedLoss()
-    return nn.SmoothL1Loss(beta=1.0)
+                iou_loss = self.iou(pred, target)
+                # normalize to [0,1] before SmoothL1 so magnitudes are comparable
+                pred_n = pred / self.image_size
+                target_n = target / self.image_size
+                l1_loss = self.smooth_l1(pred_n, target_n)
+                return self.alpha * iou_loss + self.beta * l1_loss
+        return CombinedLoss(image_size=args.image_size, alpha=1.0, beta=1.0)
+    
+    return nn.SmoothL1Loss(beta=1.0) # default
 
 
 def count_parameters(model: nn.Module, trainable_only: bool = False) -> int:
-    """Count parameters for a quick sanity check before training."""
     parameters = model.parameters()
     if trainable_only:
         parameters = (parameter for parameter in parameters if parameter.requires_grad)
@@ -337,23 +362,16 @@ def count_parameters(model: nn.Module, trainable_only: bool = False) -> int:
 
 
 def cxcywh_to_xyxy(boxes: torch.Tensor) -> torch.Tensor:
-    """Convert centre-width-height boxes into corner coordinates."""
     x_center, y_center, width, height = boxes.unbind(dim=1)
-    half_width = width / 2.0
-    half_height = height / 2.0
-    return torch.stack(
-        (
-            x_center - half_width,
-            y_center - half_height,
-            x_center + half_width,
-            y_center + half_height,
-        ),
-        dim=1,
-    )
+    return torch.stack((
+            x_center - width / 2.0,
+            y_center - height / 2.0,
+            x_center + width / 2.0,
+            y_center + height / 2.0,
+        ),dim=1,)
 
 
 def box_iou(pred_boxes: torch.Tensor, target_boxes: torch.Tensor) -> torch.Tensor:
-    """Compute IoU for aligned batches of predicted and target boxes."""
     pred_xyxy = cxcywh_to_xyxy(pred_boxes)
     target_xyxy = cxcywh_to_xyxy(target_boxes)
 
@@ -362,12 +380,8 @@ def box_iou(pred_boxes: torch.Tensor, target_boxes: torch.Tensor) -> torch.Tenso
     wh = (bottom_right - top_left).clamp(min=0.0)
     intersection = wh[:, 0] * wh[:, 1]
 
-    pred_area = (pred_xyxy[:, 2] - pred_xyxy[:, 0]).clamp(min=0.0) * (
-        pred_xyxy[:, 3] - pred_xyxy[:, 1]
-    ).clamp(min=0.0)
-    target_area = (target_xyxy[:, 2] - target_xyxy[:, 0]).clamp(min=0.0) * (
-        target_xyxy[:, 3] - target_xyxy[:, 1]
-    ).clamp(min=0.0)
+    pred_area = (pred_xyxy[:, 2] - pred_xyxy[:, 0]).clamp(min=0.0) * (pred_xyxy[:, 3] - pred_xyxy[:, 1]).clamp(min=0.0)
+    target_area = (target_xyxy[:, 2] - target_xyxy[:, 0]).clamp(min=0.0) * (target_xyxy[:, 3] - target_xyxy[:, 1]).clamp(min=0.0)
     union = pred_area + target_area - intersection
 
     return intersection / union.clamp(min=1e-6)
@@ -375,11 +389,7 @@ def box_iou(pred_boxes: torch.Tensor, target_boxes: torch.Tensor) -> torch.Tenso
 
 def batch_dice_score(
     predicted_mask: torch.Tensor,
-    target_mask: torch.Tensor,
-    num_classes: int,
-    eps: float = 1e-6,
-) -> torch.Tensor:
-    """Compute a mean multi-class Dice score for each sample in the batch."""
+    target_mask: torch.Tensor, num_classes: int, eps: float = 1e-6) -> torch.Tensor:
     dice_scores = []
     for class_index in range(num_classes):
         pred_class = (predicted_mask == class_index).float()
@@ -399,7 +409,6 @@ def run_epoch(
     optimizer: Optional[optim.Optimizer] = None,
     max_batches: Optional[int] = None,
 ) -> Dict[str, float]:
-    """Run one training or validation epoch and return aggregate metrics."""
     is_training = optimizer is not None
     if is_training:
         model.train()
@@ -463,36 +472,30 @@ def run_epoch(
         if max_batches is not None and batch_index >= max_batches:
             break
 
-    metrics = {
-        "loss": total_loss / max(total_examples, 1),
-    }
+    metrics = {"loss": total_loss / max(total_examples, 1),}
 
     if task == "classification":
         accuracy = (
             np.mean(np.equal(classification_targets, classification_predictions))
             if classification_targets
-            else 0.0
-        )
+            else 0.0)
         macro_f1 = (
             f1_score(
                 classification_targets,
                 classification_predictions,
                 average="macro",
-                zero_division=0,
-            )
+                zero_division=0,)
             if classification_targets
             else 0.0
         )
         metrics.update({"accuracy": float(accuracy), "macro_f1": float(macro_f1)})
 
     elif task == "localization":
-        metrics.update(
-            {
+        metrics.update({
                 "mean_iou": localization_iou_sum / max(total_examples, 1),
                 "l1_error": localization_l1_sum / max(total_examples * 4, 1),
                 "ap50_proxy": localization_hits50 / max(total_examples, 1),
-            }
-        )
+            })
 
     else:
         metrics.update(
@@ -507,7 +510,6 @@ def run_epoch(
 
 
 def select_model_metric(task: str) -> str:
-    """Pick the validation metric that decides the best checkpoint."""
     if task == "classification":
         return "macro_f1"
     if task == "localization":
@@ -516,17 +518,14 @@ def select_model_metric(task: str) -> str:
 
 
 def format_metrics(metrics: Dict[str, float]) -> str:
-    """Pretty-print a metrics dictionary with stable ordering."""
     return ", ".join(f"{key}={value:.4f}" for key, value in sorted(metrics.items()))
 
 
 def checkpoint_path_for_task(task: str, checkpoint_dir: Path) -> Path:
-    """Return the mandatory grading filename for the chosen task."""
     return checkpoint_dir / CHECKPOINT_NAMES[task]
 
 
 def save_checkpoint(model: nn.Module, checkpoint_path: Path) -> None:
-    """Save a CPU state_dict so the provided multi-task wrapper can load it anywhere."""
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
     cpu_state = {
         key: value.detach().cpu()
@@ -536,7 +535,6 @@ def save_checkpoint(model: nn.Module, checkpoint_path: Path) -> None:
 
 
 def maybe_init_wandb(model: nn.Module, args: argparse.Namespace):
-    """Start a W&B run only when explicitly requested by the caller."""
     if not args.use_wandb:
         return None
 
@@ -569,7 +567,6 @@ def maybe_init_wandb(model: nn.Module, args: argparse.Namespace):
 
 
 def validate_multitask_bundle(checkpoint_dir: Path) -> None:
-    """Smoke-test the unified pipeline once all three mandatory checkpoints exist."""
     classifier_path = checkpoint_dir / CHECKPOINT_NAMES["classification"]
     localizer_path = checkpoint_dir / CHECKPOINT_NAMES["localization"]
     unet_path = checkpoint_dir / CHECKPOINT_NAMES["segmentation"]
@@ -593,7 +590,6 @@ def validate_multitask_bundle(checkpoint_dir: Path) -> None:
 
 
 def main() -> None:
-    """Run the end-to-end single-task training loop."""
     args = parse_args()
     args.data_dir = args.data_dir.expanduser().resolve()
     args.checkpoint_dir = args.checkpoint_dir.expanduser().resolve()

@@ -26,11 +26,12 @@ class VGG11Localizer(nn.Module):
         self.dropout = CustomDropout(p=self.dropout_p)
         self.encoder = VGG11Encoder(in_channels=in_channels)
         # we need to make sure that output is 512 x 7 x 7
-        self.fc1 = nn.Linear(in_features=512 * 7 * 7, out_features=1024)
-        self.bn1 = nn.BatchNorm1d(num_features=1024)
-        self.fc2 = nn.Linear(in_features=1024, out_features=512)
-        self.bn2 = nn.BatchNorm1d(num_features=512)
-        self.out = nn.Linear(in_features=512, out_features=4)
+        self.gap = nn.AdaptiveAvgPool2d(output_size=(1, 1)) # to avoid parameter explosion (we get a 512 dim vector)
+        self.fc1 = nn.Linear(in_features=512, out_features=256)
+        self.bn1 = nn.BatchNorm1d(num_features=256)
+        self.fc2 = nn.Linear(in_features=256, out_features=128)
+        self.bn2 = nn.BatchNorm1d(num_features=128)
+        self.out = nn.Linear(in_features=128, out_features=4)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass for localization model.
@@ -38,10 +39,11 @@ class VGG11Localizer(nn.Module):
             x: Input tensor of shape [B, in_channels, H, W].
 
         Returns:
-            Bounding box coordinates [B, 4] in (x_center, y_center, width, height) format in original image pixel space(not normalized values).
+            Bounding box coordinates [B, 4] in (x_center, y_center, width, height) format
+            in original image pixel space (not normalized values).
         """
         x = self.encoder(x)
-        x = x.reshape(x.shape[0], -1)
+        x = self.gap(x).flatten(1) # convert b x 512 x 1 x 1 -> b x 512)
         x = self.dropout(self.relu(self.bn1(self.fc1(x))))
         x = self.dropout(self.relu(self.bn2(self.fc2(x))))
         x = self.out(x)
