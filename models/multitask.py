@@ -35,7 +35,7 @@ class MultiTaskPerceptionModel(nn.Module):
         import os
         # classifier.pth = https://drive.google.com/file/d/1PiD3bfyH0aHAkvAyfZ5daMsGNBqS0Cmt/view?usp=sharing
         # localizer.pth = https://drive.google.com/file/d/1FWZD0SZKo8vwoZpMO7sbDlZFZ6M702uc/view?usp=sharing
-        # unet.pth = https://drive.google.com/file/d/1IA0lUlOXlb3sIqT00nPj5rb34lXZ0nVD/view?usp=drive_link
+        # unet.pth = https://drive.google.com/file/d/1EU2FGvgmYqXRD2hHdWT5co3dGRbmV2nE/view?usp=sharing
         def _maybe_download(file_id: str, output: str):
             # avoid overwriting existing checkpoints if they are already present (e.g. from a previous run or manual download)
             if not os.path.exists(output):
@@ -44,7 +44,7 @@ class MultiTaskPerceptionModel(nn.Module):
                 print(f"[checkpoint] using existing: {output}")
         _maybe_download(file_id="1PiD3bfyH0aHAkvAyfZ5daMsGNBqS0Cmt", output=classifier_path)
         _maybe_download(file_id="1FWZD0SZKo8vwoZpMO7sbDlZFZ6M702uc", output=localizer_path)
-        _maybe_download(file_id="1IA0lUlOXlb3sIqT00nPj5rb34lXZ0nVD", output=unet_path)
+        _maybe_download(file_id="1EU2FGvgmYqXRD2hHdWT5co3dGRbmV2nE", output=unet_path)
         self.num_breeds = num_breeds
         self.seg_classes = seg_classes
         self.in_channels = in_channels
