@@ -316,7 +316,7 @@ def build_criterion(args: argparse.Namespace) -> nn.Module:
                 return total / self.num_classes
 
             def forward(self, logits, targets):
-                return self.ce(logits, targets) + self.dice_loss(logits, targets)
+                return 0.5 * self.ce(logits, targets) + 2.0*self.dice_loss(logits, targets)
         
         return SegmentationLoss(num_classes=NUM_SEGMENTS)
         # return nn.CrossEntropyLoss()
@@ -349,7 +349,7 @@ def build_criterion(args: argparse.Namespace) -> nn.Module:
                 target_n = target / self.image_size
                 l1_loss = self.smooth_l1(pred_n, target_n)
                 return self.alpha * iou_loss + self.beta * l1_loss
-        return CombinedLoss(image_size=args.image_size, alpha=1.0, beta=1.0)
+        return CombinedLoss(image_size=args.image_size, alpha=2.0, beta=1.0)
     
     return nn.SmoothL1Loss(beta=1.0) # default
 

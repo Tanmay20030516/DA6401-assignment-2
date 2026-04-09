@@ -18,3 +18,4 @@ feat_mp_an.py
 .matplotlib/
 log_detection_wandb.py
 wild_inference.py
+test/
