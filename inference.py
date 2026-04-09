@@ -225,7 +225,7 @@ def build_model(args: argparse.Namespace):
 
     if args.task == "localization":
         checkpoint_path = checkpoint_for_task("localization", args)
-        model = VGG11Localizer(in_channels=IN_CHANNELS, dropout_p=0.5)
+        model = VGG11Localizer(in_channels=IN_CHANNELS, dropout_p=0.5, image_size=args.image_size)
         model.load_state_dict(
             load_checkpoint_state(checkpoint_path, map_location=args.device)
         )

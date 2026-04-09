@@ -275,7 +275,7 @@ def build_model(args: argparse.Namespace) -> nn.Module:
             use_bn=not args.no_bn,
         )
     elif args.task == "localization":
-        model = VGG11Localizer(in_channels=IN_CHANNELS, dropout_p=args.dropout_p)
+        model = VGG11Localizer(in_channels=IN_CHANNELS, dropout_p=args.dropout_p, image_size=args.image_size)
     else:
         model = VGG11UNet(
             num_classes=NUM_SEGMENTS,

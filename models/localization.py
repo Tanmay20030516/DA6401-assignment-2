@@ -2,6 +2,7 @@
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from .vgg11 import VGG11Encoder
 from .layers import CustomDropout
@@ -10,7 +11,7 @@ from .layers import CustomDropout
 class VGG11Localizer(nn.Module):
     """VGG11-based localizer."""
 
-    def __init__(self, in_channels: int = 3, dropout_p: float = 0.5):
+    def __init__(self, in_channels: int = 3, dropout_p: float = 0.5, image_size: int = 224):
         """
         Initialize the VGG11Localizer model.
 
@@ -21,6 +22,7 @@ class VGG11Localizer(nn.Module):
         super(VGG11Localizer, self).__init__()
         self.in_channels = in_channels
         self.dropout_p = dropout_p
+        self.image_size = image_size
 
         self.relu = nn.ReLU()
         self.dropout = CustomDropout(p=self.dropout_p)
@@ -44,7 +46,9 @@ class VGG11Localizer(nn.Module):
         """
         x = self.encoder(x)
         # x = self.gap(x).flatten(1) # convert b x 512 x 1 x 1 -> b x 512)
+        x = x.flatten(1) # convert b x 512 x 7 x 7 -> b x (512*7*7)
         x = self.dropout(self.relu(self.bn1(self.fc1(x))))
         x = self.dropout(self.relu(self.bn2(self.fc2(x))))
         x = self.out(x)
+        x = F.sigmoid(x) * self.image_size # scale output to image pixel space
         return x
