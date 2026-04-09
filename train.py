@@ -294,7 +294,7 @@ def build_model(args: argparse.Namespace) -> nn.Module:
 
 def build_criterion(args: argparse.Namespace) -> nn.Module:
     if args.task == "classification":
-        return nn.CrossEntropyLoss()
+        return nn.CrossEntropyLoss(label_smoothing=0.1)
     if args.task == "segmentation":
         class SegmentationLoss(nn.Module):
             """" combined CE + dice loss (simple CE loss can cause issues due to more background class in image) """
@@ -566,27 +566,27 @@ def maybe_init_wandb(model: nn.Module, args: argparse.Namespace):
     return run
 
 
-def validate_multitask_bundle(checkpoint_dir: Path) -> None:
-    classifier_path = checkpoint_dir / CHECKPOINT_NAMES["classification"]
-    localizer_path = checkpoint_dir / CHECKPOINT_NAMES["localization"]
-    unet_path = checkpoint_dir / CHECKPOINT_NAMES["segmentation"]
+# def validate_multitask_bundle(checkpoint_dir: Path) -> None:
+#     classifier_path = checkpoint_dir / CHECKPOINT_NAMES["classification"]
+#     localizer_path = checkpoint_dir / CHECKPOINT_NAMES["localization"]
+#     unet_path = checkpoint_dir / CHECKPOINT_NAMES["segmentation"]
 
-    if not (classifier_path.exists() and localizer_path.exists() and unet_path.exists()):
-        return
+#     if not (classifier_path.exists() and localizer_path.exists() and unet_path.exists()):
+#         return
 
-    try:
-        bundle = MultiTaskPerceptionModel(
-            num_breeds=NUM_CLASSES,
-            seg_classes=NUM_SEGMENTS,
-            in_channels=IN_CHANNELS,
-            classifier_path=str(classifier_path),
-            localizer_path=str(localizer_path),
-            unet_path=str(unet_path),
-        )
-        del bundle
-        print("[multitask-check] All three checkpoints can be loaded by MultiTaskPerceptionModel.")
-    except Exception as error:
-        print(f"[multitask-check] Failed to build unified model: {error}")
+#     try:
+#         bundle = MultiTaskPerceptionModel(
+#             num_breeds=NUM_CLASSES,
+#             seg_classes=NUM_SEGMENTS,
+#             in_channels=IN_CHANNELS,
+#             classifier_path=str(classifier_path),
+#             localizer_path=str(localizer_path),
+#             unet_path=str(unet_path),
+#         )
+#         del bundle
+#         print("[multitask-check] All three checkpoints can be loaded by MultiTaskPerceptionModel.")
+#     except Exception as error:
+#         print(f"[multitask-check] Failed to build unified model: {error}")
 
 
 def main() -> None:

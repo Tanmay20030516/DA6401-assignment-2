@@ -20,7 +20,7 @@ class VGG11Encoder(nn.Module):
         def bn2d(c):
             return nn.BatchNorm2d(c) if self.use_bn else nn.Identity()
         
-        self.relu = nn.ReLU()
+        self.relu = nn.ReLU(inplace=True)
 
         self.conv1 = nn.Conv2d(
             in_channels=self.in_channels,

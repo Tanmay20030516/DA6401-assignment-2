@@ -19,6 +19,7 @@ class MultiTaskPerceptionModel(nn.Module):
         classifier_path: str = "checkpoints/classifier.pth",
         localizer_path: str = "checkpoints/localizer.pth",
         unet_path: str = "checkpoints/unet.pth",
+        dropout_p: float = 0.4,
     ):
         """
         Initialize the shared backbone/heads using these trained weights.
@@ -48,9 +49,9 @@ class MultiTaskPerceptionModel(nn.Module):
         self.num_breeds = num_breeds
         self.seg_classes = seg_classes
         self.in_channels = in_channels
-        self.classifier = VGG11Classifier(in_channels=in_channels, num_classes=num_breeds, dropout_p=0.5)
-        self.localizer = VGG11Localizer(in_channels=in_channels, dropout_p=0.5)
-        self.unet = VGG11UNet(in_channels=in_channels, num_classes=seg_classes, dropout_p=0.5)
+        self.classifier = VGG11Classifier(in_channels=in_channels, num_classes=num_breeds, dropout_p=dropout_p)
+        self.localizer = VGG11Localizer(in_channels=in_channels, dropout_p=dropout_p)
+        self.unet = VGG11UNet(in_channels=in_channels, num_classes=seg_classes, dropout_p=dropout_p)
         self.classifier.load_state_dict(torch.load(classifier_path, map_location="cpu", weights_only=True))
         self.localizer.load_state_dict(torch.load(localizer_path, map_location="cpu", weights_only=True))
         self.unet.load_state_dict(torch.load(unet_path, map_location="cpu", weights_only=True))

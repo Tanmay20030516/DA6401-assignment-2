@@ -24,12 +24,12 @@ class VGG11Classifier(nn.Module):
         self.use_bn = use_bn
         def bn1d(c):
             return nn.BatchNorm1d(c) if self.use_bn else nn.Identity()
-        self.relu = nn.ReLU()
+        self.relu = nn.ReLU(inplace=True)
         self.dropout = CustomDropout(p=self.dropout_p)
         self.encoder = VGG11Encoder(in_channels=in_channels, use_bn=use_bn)
-        # we need to make sure that output is 512 x 7 x 7
-        self.gap = nn.AdaptiveAvgPool2d(output_size=(1, 1)) # to avoid parameter explosion (we get a 512 dim vector)
-        self.fc1 = nn.Linear(in_features=512, out_features=512)
+        # we bring the output to 512 x 5 x 5
+        self.gap = nn.AdaptiveAvgPool2d(output_size=(5, 5))
+        self.fc1 = nn.Linear(in_features=512*5*5, out_features=512)
         self.bn1 = bn1d(512)
         self.fc2 = nn.Linear(in_features=512, out_features=256)
         self.bn2 = bn1d(256)
@@ -44,7 +44,7 @@ class VGG11Classifier(nn.Module):
         n, _, _, _ = x.shape
         x = self.encoder(x)
 
-        x = self.gap(x).flatten(1) # convert b x 512 x 1 x 1 -> b x 512
+        x = self.gap(x).flatten(1) # convert b x 512 x 5 x 5 -> b x 12800
         x = self.fc1(x)
         x = self.bn1(x)
         x = self.relu(x)

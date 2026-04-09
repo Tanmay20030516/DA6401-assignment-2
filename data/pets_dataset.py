@@ -70,7 +70,7 @@ class OxfordIIITPetDataset(Dataset):
         image_np = np.array(
             Image.open(row["image_path"]).convert("RGB"), dtype=np.uint8
         )
-        mask_np = self._read_trimap(row["mask_path"])
+        mask_np = self._read_trimap(row["mask_path"]).astype(np.uint8)
 
         # bbox stored as normalised [xmin, ymin, xmax, ymax] in manifest
         xmin = float(row["xmin"]) if str(row["xmin"]) != "not_found" else 0.0
@@ -231,13 +231,7 @@ class OxfordIIITPetDataset(Dataset):
                 [
                     A.Resize(image_size, image_size),
                     A.HorizontalFlip(p=0.5),
-                    A.Rotate(limit=15, border_mode=0, p=0.4),
-                    A.RandomResizedCrop(
-                        size=(image_size, image_size),
-                        scale=(0.8, 1.0),
-                        ratio=(0.9, 1.1),
-                        p=0.5,
-                    ),
+                    A.Rotate(limit=10, border_mode=0, p=0.4),
                     A.ColorJitter(
                         brightness=0.2, contrast=0.2, saturation=0.15, hue=0.05, p=0.5
                     ),

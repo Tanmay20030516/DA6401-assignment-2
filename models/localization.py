@@ -1,8 +1,6 @@
-"""Localization modules"""
-
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+# import torch.nn.functional as F
 
 from .vgg11 import VGG11Encoder
 from .layers import CustomDropout
@@ -24,12 +22,12 @@ class VGG11Localizer(nn.Module):
         self.dropout_p = dropout_p
         self.image_size = image_size
 
-        self.relu = nn.ReLU()
+        self.relu = nn.ReLU(inplace=True)
         self.dropout = CustomDropout(p=self.dropout_p)
         self.encoder = VGG11Encoder(in_channels=in_channels)
-        # we need to make sure that output is 512 x 7 x 7
-        # self.gap = nn.AdaptiveAvgPool2d(output_size=(1, 1)) # to avoid parameter explosion (we get a 512 dim vector)
-        self.fc1 = nn.Linear(512 * 7 * 7, 512)
+        # we bring the output to 512 x 5 x 5
+        self.gap = nn.AdaptiveAvgPool2d(output_size=(5, 5))
+        self.fc1 = nn.Linear(512 * 5 * 5, 512)
         self.bn1 = nn.BatchNorm1d(512)
         self.fc2 = nn.Linear(512, 256)
         self.bn2 = nn.BatchNorm1d(256)
@@ -45,10 +43,10 @@ class VGG11Localizer(nn.Module):
             in original image pixel space (not normalized values).
         """
         x = self.encoder(x)
-        # x = self.gap(x).flatten(1) # convert b x 512 x 1 x 1 -> b x 512)
-        x = x.flatten(1) # convert b x 512 x 7 x 7 -> b x (512*7*7)
+        x = self.gap(x).flatten(1) # convert bs x 512 x 5 x 5 -> bs x 12800
+        # x = x.flatten(1) # convert bs x 512 x 7 x 7 -> bs x (512*7*7)
         x = self.dropout(self.relu(self.bn1(self.fc1(x))))
         x = self.dropout(self.relu(self.bn2(self.fc2(x))))
         x = self.out(x)
-        x = F.sigmoid(x) * self.image_size # scale output to image pixel space
+        x = torch.sigmoid(x) * self.image_size # scale output to image pixel space
         return x
