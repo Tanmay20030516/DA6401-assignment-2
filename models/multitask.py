@@ -32,18 +32,18 @@ class MultiTaskPerceptionModel(nn.Module):
         super(MultiTaskPerceptionModel, self).__init__()
         import gdown
         import os
-        # classifier.pth = https://drive.google.com/file/d/13ImU_U6x4MdUmt8m4wCO91MQH1sb0POA/view?usp=sharing
-        # localizer.pth = https://drive.google.com/file/d/1odlFguFatDi76B-DvGjWt6aRaEBwr4zT/view?usp=sharing
-        # unet.pth = https://drive.google.com/file/d/1KUz3zPi1-zn7uxjMhMGrUcS5U1qFWWTV/view?usp=sharing
+        # classifier.pth = https://drive.google.com/file/d/1kWaCfUsk_o9Z0mCeDtKeOq79XdvDuw6r/view?usp=sharing
+        # localizer.pth = https://drive.google.com/file/d/1-7OpCdeKpC2XG4-B0vKVz2kuSghq-gu3/view?usp=sharing
+        # unet.pth = https://drive.google.com/file/d/1pZkndAVzO40Al0jU4b5yQpY6dJzI5nKf/view?usp=sharing
         def _maybe_download(file_id: str, output: str):
             # avoid overwriting existing checkpoints if they are already present (e.g. from a previous run or manual download)
             if not os.path.exists(output):
                 gdown.download(id=file_id, output=output, quiet=False)
             else:
                 print(f"[checkpoint] using existing: {output}")
-        _maybe_download(file_id="13ImU_U6x4MdUmt8m4wCO91MQH1sb0POA", output=classifier_path)
-        _maybe_download(file_id="1odlFguFatDi76B-DvGjWt6aRaEBwr4zT", output=localizer_path)
-        _maybe_download(file_id="1KUz3zPi1-zn7uxjMhMGrUcS5U1qFWWTV", output=unet_path)
+        _maybe_download(file_id="1kWaCfUsk_o9Z0mCeDtKeOq79XdvDuw6r", output=classifier_path)
+        _maybe_download(file_id="1-7OpCdeKpC2XG4-B0vKVz2kuSghq-gu3", output=localizer_path)
+        _maybe_download(file_id="1pZkndAVzO40Al0jU4b5yQpY6dJzI5nKf", output=unet_path)
         self.num_breeds = num_breeds
         self.seg_classes = seg_classes
         self.in_channels = in_channels
