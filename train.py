@@ -300,7 +300,11 @@ def build_criterion(args: argparse.Namespace) -> nn.Module:
             """" combined CE + dice loss (simple CE loss can cause issues due to more background class in image) """
             def __init__(self, num_classes=3, eps=1e-6):
                 super(SegmentationLoss, self).__init__()
-                self.ce = nn.CrossEntropyLoss()
+                # we would need to include clas weights, since the boundary class is less compared to 
+                # background class and body class
+                # trimap pixel values -> class indices (background(2)=0, body(1)=1, boundary(3)=2)
+                # trimap_to_class = {1: 1, 2: 0, 3: 2}
+                self.ce = nn.CrossEntropyLoss(weight=torch.tensor([1.0, 2.0, 3.0]))
                 self.eps = eps
                 self.num_classes = num_classes
 
@@ -316,7 +320,7 @@ def build_criterion(args: argparse.Namespace) -> nn.Module:
                 return total / self.num_classes
 
             def forward(self, logits, targets):
-                return 0.5 * self.ce(logits, targets) + 2.0*self.dice_loss(logits, targets)
+                return 1.0 * self.ce(logits, targets) + 2.0 * self.dice_loss(logits, targets)
         
         return SegmentationLoss(num_classes=NUM_SEGMENTS)
         # return nn.CrossEntropyLoss()
@@ -338,6 +342,7 @@ def build_criterion(args: argparse.Namespace) -> nn.Module:
                 super(CombinedLoss, self).__init__()
                 self.iou = IoULoss()
                 self.smooth_l1 = nn.SmoothL1Loss(beta=1.0)
+                self.mse = nn.MSELoss()
                 self.image_size = image_size
                 self.alpha = alpha  # weight for iou loss
                 self.beta = beta    # weight for smooth l1 loss
@@ -347,8 +352,9 @@ def build_criterion(args: argparse.Namespace) -> nn.Module:
                 # normalize to [0,1] before SmoothL1 so magnitudes are comparable
                 pred_n = pred / self.image_size
                 target_n = target / self.image_size
-                l1_loss = self.smooth_l1(pred_n, target_n)
-                return self.alpha * iou_loss + self.beta * l1_loss
+                # l1_loss = self.smooth_l1(pred_n, target_n)
+                l2_loss = self.mse(pred_n, target_n)
+                return self.alpha * iou_loss + self.beta * l2_loss
         return CombinedLoss(image_size=args.image_size, alpha=2.0, beta=1.0)
     
     return nn.SmoothL1Loss(beta=1.0) # default

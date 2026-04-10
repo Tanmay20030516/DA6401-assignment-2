@@ -29,11 +29,11 @@ class VGG11Classifier(nn.Module):
         self.encoder = VGG11Encoder(in_channels=in_channels, use_bn=use_bn)
         # we bring the output to 512 x 5 x 5
         self.gap = nn.AdaptiveAvgPool2d(output_size=(5, 5))
-        self.fc1 = nn.Linear(in_features=512*5*5, out_features=512)
-        self.bn1 = bn1d(512)
-        self.fc2 = nn.Linear(in_features=512, out_features=256)
-        self.bn2 = bn1d(256)
-        self.out = nn.Linear(in_features=256, out_features=self.num_classes)
+        self.fc1 = nn.Linear(in_features=512*5*5, out_features=4096)
+        self.bn1 = bn1d(4096)
+        self.fc2 = nn.Linear(in_features=4096, out_features=4096)
+        self.bn2 = bn1d(4096)
+        self.out = nn.Linear(in_features=4096, out_features=self.num_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

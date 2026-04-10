@@ -27,9 +27,9 @@ class VGG11Localizer(nn.Module):
         self.encoder = VGG11Encoder(in_channels=in_channels)
         # we bring the output to 512 x 5 x 5
         self.gap = nn.AdaptiveAvgPool2d(output_size=(5, 5))
-        self.fc1 = nn.Linear(512 * 5 * 5, 512)
-        self.bn1 = nn.BatchNorm1d(512)
-        self.fc2 = nn.Linear(512, 256)
+        self.fc1 = nn.Linear(512 * 5 * 5, 1024)
+        self.bn1 = nn.BatchNorm1d(1024)
+        self.fc2 = nn.Linear(1024, 256)
         self.bn2 = nn.BatchNorm1d(256)
         self.out = nn.Linear(256, 4)
 

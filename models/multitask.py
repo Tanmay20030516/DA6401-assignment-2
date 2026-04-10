@@ -1,5 +1,3 @@
-"""Unified multi-task model"""
-
 import torch
 import torch.nn as nn
 
