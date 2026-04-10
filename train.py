@@ -304,7 +304,7 @@ def build_criterion(args: argparse.Namespace) -> nn.Module:
                 # background class and body class
                 # trimap pixel values -> class indices (background(2)=0, body(1)=1, boundary(3)=2)
                 # trimap_to_class = {1: 1, 2: 0, 3: 2}
-                self.ce = nn.CrossEntropyLoss(weight=torch.tensor([1.0, 2.0, 3.0]))
+                self.ce = nn.CrossEntropyLoss(weight=torch.tensor([1.0, 2.0, 3.0], device=DEVICE))
                 self.eps = eps
                 self.num_classes = num_classes
 
