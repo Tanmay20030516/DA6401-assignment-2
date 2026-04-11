@@ -1,10 +1,9 @@
 """Reusable custom layers"""
 
 import torch
-import torch.nn as nn
 
 
-class CustomDropout(nn.Module):
+class CustomDropout(torch.nn.Module):
     """Custom Dropout layer."""
 
     def __init__(self, p: float = 0.5):
@@ -27,9 +26,7 @@ class CustomDropout(nn.Module):
         Returns:
             Output tensor.
         """
-        if (
-            self.training
-        ):  # if used in training mode, we do inverse scaling by multiplying by 1/1-p
+        if (self.training):  # if used in training mode, we do inverse scaling by multiplying by 1/1-p
             # inverse scaling is done so that expected value of activations match during training and inference
             mask = (
                 torch.rand(x.shape, device=x.device) > self.p

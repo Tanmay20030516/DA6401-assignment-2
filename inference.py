@@ -1,12 +1,7 @@
-"""Inference and evaluation"""
-
 import argparse
 import os
 from pathlib import Path
 from typing import Dict, List, Optional
-
-SCRIPT_DIR = Path(__file__).resolve().parent
-os.environ.setdefault("MPLCONFIGDIR", str(SCRIPT_DIR / ".matplotlib"))
 
 import matplotlib
 
@@ -23,6 +18,8 @@ from models.localization import VGG11Localizer
 from models.segmentation import VGG11UNet
 from models.multitask import MultiTaskPerceptionModel
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+os.environ.setdefault("MPLCONFIGDIR", str(SCRIPT_DIR / ".matplotlib"))
 
 DEVICE = (
     "cuda"
@@ -53,7 +50,6 @@ MASK_COLOURS = np.array(
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command line arguments for evaluation."""
     parser = argparse.ArgumentParser(
         description="Run inference for Assignment-2 models."
     )
@@ -146,28 +142,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def resolve_path_like(value: object, assignment_dir: Path) -> str:
-    """Resolve relative manifest entries against the assignment root."""
-    text = str(value)
-    if text == "not_exist":
-        return text
-    path = Path(text)
-    if path.is_absolute():
-        return str(path)
-    return str((assignment_dir / path).resolve())
-
-
-def resolve_dataset_paths(dataset: OxfordIIITPetDataset, assignment_dir: Path) -> None:
-    """Convert manifest rows to absolute paths once after loading the split."""
-    dataset.df = dataset.df.copy()
-    for column in ("image_path", "mask_path", "xml_path"):
-        if column not in dataset.df.columns:
-            continue
-        dataset.df[column] = dataset.df[column].apply(
-            lambda value: resolve_path_like(value, assignment_dir)
-        )
-
-
 def build_dataloader(
     data_dir: Path,
     split: str,
@@ -176,11 +150,9 @@ def build_dataloader(
     num_workers: int,
     device: str,
 ) -> DataLoader:
-    """Create the evaluation dataloader."""
     dataset = OxfordIIITPetDataset(
         root_dir=str(data_dir), split=split, image_size=image_size
     )
-    resolve_dataset_paths(dataset, SCRIPT_DIR)
     return DataLoader(
         dataset,
         batch_size=batch_size,
@@ -193,7 +165,6 @@ def build_dataloader(
 def load_checkpoint_state(
     checkpoint_path: Path, map_location: str = "cpu"
 ) -> Dict[str, torch.Tensor]:
-    """Load a checkpoint that may be stored as a state_dict or wrapped payload."""
     payload = torch.load(checkpoint_path, map_location=map_location)
     if isinstance(payload, dict) and "state_dict" in payload:
         return payload["state_dict"]
@@ -203,14 +174,12 @@ def load_checkpoint_state(
 
 
 def checkpoint_for_task(task: str, args: argparse.Namespace) -> Path:
-    """Resolve the checkpoint path for one single-task model."""
     if args.checkpoint_path is not None:
         return args.checkpoint_path.expanduser().resolve()
     return (args.checkpoint_dir / CHECKPOINT_NAMES[task]).expanduser().resolve()
 
 
 def build_model(args: argparse.Namespace):
-    """Instantiate the requested model and load the required checkpoint(s)."""
     if args.task == "classification":
         checkpoint_path = checkpoint_for_task("classification", args)
         model = VGG11Classifier(
@@ -225,7 +194,9 @@ def build_model(args: argparse.Namespace):
 
     if args.task == "localization":
         checkpoint_path = checkpoint_for_task("localization", args)
-        model = VGG11Localizer(in_channels=IN_CHANNELS, dropout_p=0.5, image_size=args.image_size)
+        model = VGG11Localizer(
+            in_channels=IN_CHANNELS, dropout_p=0.5, image_size=args.image_size
+        )
         model.load_state_dict(
             load_checkpoint_state(checkpoint_path, map_location=args.device)
         )
@@ -279,7 +250,6 @@ def build_model(args: argparse.Namespace):
 
 
 def cxcywh_to_xyxy(boxes: torch.Tensor) -> torch.Tensor:
-    """Convert centre-width-height boxes into corner coordinates."""
     x_center, y_center, width, height = boxes.unbind(dim=1)
     half_width = width / 2.0
     half_height = height / 2.0
@@ -295,7 +265,6 @@ def cxcywh_to_xyxy(boxes: torch.Tensor) -> torch.Tensor:
 
 
 def box_iou(pred_boxes: torch.Tensor, target_boxes: torch.Tensor) -> torch.Tensor:
-    """Compute IoU for aligned batches of predicted and target boxes."""
     pred_xyxy = cxcywh_to_xyxy(pred_boxes)
     target_xyxy = cxcywh_to_xyxy(target_boxes)
 
@@ -321,7 +290,6 @@ def batch_dice_score(
     num_classes: int,
     eps: float = 1e-6,
 ) -> torch.Tensor:
-    """Compute a per-sample multi-class Dice score."""
     dice_scores = []
     for class_index in range(num_classes):
         pred_class = (predicted_mask == class_index).float()
@@ -333,7 +301,6 @@ def batch_dice_score(
 
 
 def load_label_names(data_dir: Path) -> List[str]:
-    """Derive readable breed labels from the annotation list file."""
     list_path = data_dir / "annotations" / "list.txt"
     names = {}
     if not list_path.exists():
@@ -353,13 +320,11 @@ def load_label_names(data_dir: Path) -> List[str]:
 
 
 def colourise_mask(mask: np.ndarray) -> np.ndarray:
-    """Map class ids to an RGB image for saved visualisations."""
     mask = np.clip(mask.astype(np.int64), 0, len(MASK_COLOURS) - 1)
     return MASK_COLOURS[mask]
 
 
 def tensor_image_to_numpy(image_tensor: torch.Tensor) -> np.ndarray:
-    """Convert a CHW float tensor into an HWC numpy array."""
     image = image_tensor.detach().cpu().permute(1, 2, 0).numpy()
     return np.clip(image, 0.0, 1.0)
 
@@ -367,7 +332,6 @@ def tensor_image_to_numpy(image_tensor: torch.Tensor) -> np.ndarray:
 def draw_boxes(
     ax, image: np.ndarray, gt_box: np.ndarray, pred_box: Optional[np.ndarray] = None
 ) -> None:
-    """Draw ground-truth and prediction boxes onto one matplotlib axis."""
     ax.imshow(image)
     gt_box = cxcywh_to_xyxy(torch.tensor(gt_box).unsqueeze(0)).squeeze(0).numpy()
     gt_width = gt_box[2] - gt_box[0]
@@ -408,7 +372,6 @@ def save_visual(
     output_dir: Path,
     label_names: List[str],
 ) -> None:
-    """Save one qualitative prediction figure."""
     output_dir.mkdir(parents=True, exist_ok=True)
     image = sample["image"]
     gt_label = int(sample["gt_label"])
@@ -461,7 +424,6 @@ def evaluate(
     device: str,
     num_visuals: int,
 ) -> tuple[Dict[str, float], List[Dict[str, np.ndarray]]]:
-    """Run evaluation for a single-task or multitask model."""
     model.eval()
 
     total_examples = 0
@@ -609,12 +571,10 @@ def evaluate(
 
 
 def format_metrics(metrics: Dict[str, float]) -> str:
-    """Format metric values for a single terminal line."""
     return ", ".join(f"{key}={value:.4f}" for key, value in sorted(metrics.items()))
 
 
 def main() -> None:
-    """Run evaluation and save a few qualitative examples."""
     args = parse_args()
     args.data_dir = args.data_dir.expanduser().resolve()
     args.checkpoint_dir = args.checkpoint_dir.expanduser().resolve()
@@ -637,17 +597,16 @@ def main() -> None:
     label_names = load_label_names(args.data_dir)
 
     if args.max_batches is not None:
-        # Materialise a short iterator-backed list for smoke testing without changing DataLoader code.
         batches = []
         for batch_index, batch in enumerate(loader, start=1):
             batches.append(batch)
             if batch_index >= args.max_batches:
                 break
-        loader = batches  # type: ignore[assignment]
+        loader = batches  # type: ignore
 
     metrics, visuals = evaluate(
         model=model,
-        loader=loader,  # type: ignore[arg-type]
+        loader=loader,  # type: ignore
         task=args.task,
         device=args.device,
         num_visuals=args.num_visuals,

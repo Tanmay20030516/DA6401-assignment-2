@@ -48,7 +48,6 @@ CHECKPOINT_NAMES = {
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command line arguments for single-task training."""
     parser = argparse.ArgumentParser(description="Train Assignment-2 models.")
     parser.add_argument(
         "--task",
@@ -120,18 +119,6 @@ def parse_args() -> argparse.Namespace:
         help="Torch device override. Defaults to cuda/mps/cpu auto-selection.",
     )
     parser.add_argument(
-        "--max-train-batches",
-        type=int,
-        default=None,
-        help="Optional cap for smoke testing the training loop quickly.",
-    )
-    parser.add_argument(
-        "--max-val-batches",
-        type=int,
-        default=None,
-        help="Optional cap for smoke testing the validation loop quickly.",
-    )
-    parser.add_argument(
         "--use-wandb",
         action="store_true",
         help="Enable Weights & Biases scalar logging for this run.",
@@ -174,31 +161,10 @@ def seed_everything(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
-def resolve_dataset_paths(dataset: OxfordIIITPetDataset, assignment_dir: Path) -> None:
-    dataset.df = dataset.df.copy()
-    for column in ("image_path", "mask_path", "xml_path"):
-        if column not in dataset.df.columns:
-            continue
-        dataset.df[column] = dataset.df[column].apply(
-            lambda value: resolve_path_like(value, assignment_dir)
-        )
-
-
-def resolve_path_like(value: object, assignment_dir: Path) -> str:
-    text = str(value)
-    if text == "not_exist":
-        return text
-    path = Path(text)
-    if path.is_absolute():
-        return str(path)
-    return str((assignment_dir / path).resolve())
-
-
 def build_dataloader(
     data_dir: Path, split: str, image_size: int,
     batch_size: int, shuffle: bool, num_workers: int, device: str,) -> DataLoader:
     dataset = OxfordIIITPetDataset(root_dir=str(data_dir), split=split, image_size=image_size)
-    resolve_dataset_paths(dataset, SCRIPT_DIR)
     return DataLoader(
         dataset,
         batch_size=batch_size,
@@ -604,6 +570,7 @@ def main() -> None:
 
     seed_everything(args.seed)
 
+    print(f"[setup] task={args.task}")
     print(f"[setup] device={args.device}")
     print(f"[setup] data_dir={args.data_dir}")
     print(f"[setup] checkpoint_dir={args.checkpoint_dir}")
@@ -663,7 +630,6 @@ def main() -> None:
             task=args.task,
             device=args.device,
             optimizer=optimizer,
-            max_batches=args.max_train_batches,
         )
         val_metrics = run_epoch(
             model=model,
@@ -672,7 +638,6 @@ def main() -> None:
             task=args.task,
             device=args.device,
             optimizer=None,
-            max_batches=args.max_val_batches,
         )
         ## for 2.1 task
         if run is not None and args.task == "classification":
@@ -708,6 +673,7 @@ def main() -> None:
             f"time={epoch_time:.1f}s | checkpoint={status}"
         )
         scheduler.step()
+        
         if run is not None:
             run.log(
                 {

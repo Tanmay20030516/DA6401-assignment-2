@@ -19,3 +19,4 @@ feat_mp_an.py
 log_detection_wandb.py
 wild_inference.py
 test/
+count_params.py

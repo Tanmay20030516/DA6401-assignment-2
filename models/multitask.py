@@ -17,7 +17,7 @@ class MultiTaskPerceptionModel(nn.Module):
         classifier_path: str = "checkpoints/classifier.pth",
         localizer_path: str = "checkpoints/localizer.pth",
         unet_path: str = "checkpoints/unet.pth",
-        dropout_p: float = 0.4,
+        dropout_p: float = 0.5,
     ):
         """
         Initialize the shared backbone/heads using these trained weights.

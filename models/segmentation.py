@@ -1,13 +1,12 @@
 """Segmentation model"""
 
 import torch
-import torch.nn as nn
 
 from .vgg11 import VGG11Encoder
 from .layers import CustomDropout
 
 
-class VGG11UNet(nn.Module):
+class VGG11UNet(torch.nn.Module):
     """U-Net style segmentation network."""
 
     def __init__(self, num_classes: int = 3, 
@@ -25,53 +24,53 @@ class VGG11UNet(nn.Module):
         self.in_channels = in_channels
         self.dropout_p = dropout_p
 
-        self.relu = nn.ReLU()
+        self.relu = torch.nn.ReLU()
         self.dropout = CustomDropout(dropout_p)
         self.encoder = VGG11Encoder(in_channels=in_channels)
 
         # expanding the encoder bottleneck features to 1024 channels for the decoder
-        self.conv1 = nn.Conv2d(512, 1024, 3, padding=1)
-        # self.conv1 = nn.Conv2d(512, 1024, 1)  # we can reduce the params
-        self.bn1 = nn.BatchNorm2d(num_features=1024)
-        self.conv2 = nn.Conv2d(1024, 512, 3, padding=1)
-        # self.conv2 = nn.Conv2d(1024, 512, 1)  # we can reduce the params
-        self.bn2 = nn.BatchNorm2d(num_features=512)
+        self.conv1 = torch.nn.Conv2d(512, 1024, 3, padding=1)
+        # self.conv1 = torch.nn.Conv2d(512, 1024, 1)  # we can reduce the params
+        self.bn1 = torch.nn.BatchNorm2d(num_features=1024)
+        self.conv2 = torch.nn.Conv2d(1024, 512, 3, padding=1)
+        # self.conv2 = torch.nn.Conv2d(1024, 512, 1)  # we can reduce the params
+        self.bn2 = torch.nn.BatchNorm2d(num_features=512)
 
         # decoder layers
 
-        self.trconv1 = nn.ConvTranspose2d(512, 512, 2, stride=2)
+        self.trconv1 = torch.nn.ConvTranspose2d(512, 512, 2, stride=2)
         # conv after concatenating skip connection
-        self.conv11_1 = nn.Conv2d(1024, 512, 3, padding=1)
-        self.bn3_1 = nn.BatchNorm2d(num_features=512)
-        self.conv11_2 = nn.Conv2d(512, 512, 3, padding=1)
-        self.bn3_2 = nn.BatchNorm2d(num_features=512)
-        self.bn3 = nn.BatchNorm2d(num_features=512)
+        self.conv11_1 = torch.nn.Conv2d(1024, 512, 3, padding=1)
+        self.bn3_1 = torch.nn.BatchNorm2d(num_features=512)
+        self.conv11_2 = torch.nn.Conv2d(512, 512, 3, padding=1)
+        self.bn3_2 = torch.nn.BatchNorm2d(num_features=512)
+        self.bn3 = torch.nn.BatchNorm2d(num_features=512)
 
-        self.trconv2 = nn.ConvTranspose2d(512, 512, 2, stride=2)
+        self.trconv2 = torch.nn.ConvTranspose2d(512, 512, 2, stride=2)
         # conv after concatenating skip connection
-        self.conv22_1 = nn.Conv2d(1024, 512, 3, padding=1)
-        self.bn4_1 = nn.BatchNorm2d(num_features=512)
-        self.conv22_2 = nn.Conv2d(512, 512, 3, padding=1)
-        self.bn4_2 = nn.BatchNorm2d(num_features=512)
+        self.conv22_1 = torch.nn.Conv2d(1024, 512, 3, padding=1)
+        self.bn4_1 = torch.nn.BatchNorm2d(num_features=512)
+        self.conv22_2 = torch.nn.Conv2d(512, 512, 3, padding=1)
+        self.bn4_2 = torch.nn.BatchNorm2d(num_features=512)
 
-        self.trconv3 = nn.ConvTranspose2d(512, 256, 2, stride=2)
+        self.trconv3 = torch.nn.ConvTranspose2d(512, 256, 2, stride=2)
         # conv after concatenating skip connection
-        self.conv33_1 = nn.Conv2d(512, 256, 3, padding=1)
-        self.bn5_1 = nn.BatchNorm2d(num_features=256)
-        self.conv33_2 = nn.Conv2d(256, 256, 3, padding=1)
-        self.bn5_2 = nn.BatchNorm2d(num_features=256)
+        self.conv33_1 = torch.nn.Conv2d(512, 256, 3, padding=1)
+        self.bn5_1 = torch.nn.BatchNorm2d(num_features=256)
+        self.conv33_2 = torch.nn.Conv2d(256, 256, 3, padding=1)
+        self.bn5_2 = torch.nn.BatchNorm2d(num_features=256)
 
-        self.trconv4 = nn.ConvTranspose2d(256, 128, 2, stride=2)
-        self.conv44 = nn.Conv2d(
+        self.trconv4 = torch.nn.ConvTranspose2d(256, 128, 2, stride=2)
+        self.conv44 = torch.nn.Conv2d(
             256, 128, 3, padding=1
         )  # conv after concatenating skip connection
-        self.bn6 = nn.BatchNorm2d(num_features=128)
+        self.bn6 = torch.nn.BatchNorm2d(num_features=128)
 
-        self.trconv5 = nn.ConvTranspose2d(128, 64, 2, stride=2)
-        self.conv55 = nn.Conv2d(128, 64, kernel_size=3, padding=1)
-        self.bn7 = nn.BatchNorm2d(num_features=64)
+        self.trconv5 = torch.nn.ConvTranspose2d(128, 64, 2, stride=2)
+        self.conv55 = torch.nn.Conv2d(128, 64, kernel_size=3, padding=1)
+        self.bn7 = torch.nn.BatchNorm2d(num_features=64)
 
-        self.out = nn.Conv2d(64, self.num_classes, kernel_size=1)
+        self.out = torch.nn.Conv2d(64, self.num_classes, kernel_size=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass for segmentation model.
