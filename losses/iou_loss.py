@@ -53,7 +53,7 @@ class IoULoss(nn.Module):
         target_area = (target_xyxy[:, 2] - target_xyxy[:, 0]).clamp(min=0.0) * (target_xyxy[:, 3] - target_xyxy[:, 1]).clamp(min=0.0)
         union = pred_area + target_area - intersection
 
-        iou = intersection / union.clamp(min=self.eps)
+        iou = (intersection + self.eps) / (union + self.eps)
         loss = 1.0 - iou
 
         if self.reduction == "none":
