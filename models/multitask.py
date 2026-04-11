@@ -69,7 +69,6 @@ class MultiTaskPerceptionModel(nn.Module):
         class_logits = self.classifier(x)
         bbox_coords = self.localizer(x)
         seg_logits = self.unet(x)
-        seg_logits = seg_logits[:, [1, 0, 2], :, :] # because we did a remapping in pets_dataset.py
         
         return {
             "classification": class_logits,

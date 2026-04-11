@@ -15,8 +15,8 @@ class OxfordIIITPetDataset(Dataset):
     Oxford-IIIT Pet dataset for classification, localization, and segmentation.
     """
 
-    # trimap pixel values -> class indices (background=0, body=1, boundary=2)
-    trimap_to_class = {1: 1, 2: 0, 3: 2}
+    # trimap pixel values -> class indices (body=0, background=1, boundary=2)
+    trimap_to_class = {1: 0, 2: 1, 3: 2}
     val_size = 0.1
     seed = 42
 
@@ -201,7 +201,8 @@ class OxfordIIITPetDataset(Dataset):
                         brightness=0.2, contrast=0.2, saturation=0.15, hue=0.05, p=0.5
                     ),
                     A.GaussianBlur(blur_limit=2, p=0.2),
-                    A.ToFloat(max_value=255.0),
+                    # A.ToFloat(max_value=255.0),
+                    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), max_pixel_value=255.0, p=1.0)
                 ],
                 bbox_params=bbox_params,
             )
@@ -209,7 +210,7 @@ class OxfordIIITPetDataset(Dataset):
         return A.Compose(
             [
                 A.Resize(image_size, image_size),
-                A.ToFloat(max_value=255.0),
+                A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), max_pixel_value=255.0, p=1.0),
             ],
             bbox_params=bbox_params,
         )
