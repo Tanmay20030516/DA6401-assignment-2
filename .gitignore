@@ -20,3 +20,5 @@ log_detection_wandb.py
 wild_inference.py
 test/
 count_params.py
+scratch_pad.py
+outputs/
