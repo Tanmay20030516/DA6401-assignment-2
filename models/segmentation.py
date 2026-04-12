@@ -44,7 +44,6 @@ class VGG11UNet(torch.nn.Module):
         self.bn3_1 = torch.nn.BatchNorm2d(num_features=512)
         self.conv11_2 = torch.nn.Conv2d(512, 512, 3, padding=1)
         self.bn3_2 = torch.nn.BatchNorm2d(num_features=512)
-        self.bn3 = torch.nn.BatchNorm2d(num_features=512)
 
         self.trconv2 = torch.nn.ConvTranspose2d(512, 512, 2, stride=2)
         # conv after concatenating skip connection
