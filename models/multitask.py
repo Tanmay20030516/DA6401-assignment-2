@@ -32,7 +32,7 @@ class MultiTaskPerceptionModel(nn.Module):
         super(MultiTaskPerceptionModel, self).__init__()
         import gdown
         import os
-        # classifier.pth = https://drive.google.com/file/d/1i0F1MFX_s_YKEeNUpXXojuqSo_IdZAdZ/view?usp=sharing
+        # classifier.pth = https://drive.google.com/file/d/1kMUnYTMgHoRfT9IWz342Aqtsy43CMY24/view?usp=sharing
         # localizer.pth = https://drive.google.com/file/d/1clMC6BqRpcngseWbx4RO4jaXhM4uFNl0/view?usp=sharing
         # unet.pth = https://drive.google.com/file/d/1DWF7iQuoa9KFXTvI_wC4L5H8v6gN2BxB/view?usp=sharing
         def _maybe_download(file_id: str, output: str):
@@ -41,7 +41,7 @@ class MultiTaskPerceptionModel(nn.Module):
                 gdown.download(id=file_id, output=output, quiet=False)
             else:
                 print(f"[checkpoint] using existing: {output}")
-        _maybe_download(file_id="1i0F1MFX_s_YKEeNUpXXojuqSo_IdZAdZ", output=classifier_path)
+        _maybe_download(file_id="1kMUnYTMgHoRfT9IWz342Aqtsy43CMY24", output=classifier_path)
         _maybe_download(file_id="1clMC6BqRpcngseWbx4RO4jaXhM4uFNl0", output=localizer_path)
         _maybe_download(file_id="1DWF7iQuoa9KFXTvI_wC4L5H8v6gN2BxB", output=unet_path)
         self.num_breeds = num_breeds
