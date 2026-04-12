@@ -1,12 +1,10 @@
-"""VGG11 encoder"""
-
 from typing import Dict, Tuple, Union
 
 import torch
 
 
 class VGG11Encoder(torch.nn.Module):
-    """VGG11-style encoder with optional intermediate feature returns."""
+    """VGG11-style encoder with optional intermediate feature returns"""
 
     def __init__(
         self,
@@ -56,16 +54,14 @@ class VGG11Encoder(torch.nn.Module):
         self.maxpool5 = torch.nn.MaxPool2d(kernel_size=2, stride=2)
 
     def forward(
-        self, x: torch.Tensor, return_features: bool = False
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, Dict[str, torch.Tensor]]]:
-        """Forward pass.
-
+        self, x: torch.Tensor, return_features: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, Dict[str, torch.Tensor]]]:
+        """Forward pass
         Args:
-            x: input image tensor [B, 3, H, W].
-            return_features: if True, also return skip maps for U-Net decoder.
+            x: input image tensor [B, 3, H, W]
+            return_features: if True, also return skip maps for U-Net decoder
 
         Returns:
-            bottleneck (if return_features=False) or (bottleneck, features_dict) tuple (if return_features=True).
+            bottleneck (if return_features=False) or (bottleneck, features_dict) tuple (if return_features=True)
         """
         features = {}
 
@@ -116,4 +112,3 @@ class VGG11Encoder(torch.nn.Module):
         if return_features:
             return (x, features)
         return x
-

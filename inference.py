@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import matplotlib
-
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,7 +19,6 @@ from models.multitask import MultiTaskPerceptionModel
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 os.environ.setdefault("MPLCONFIGDIR", str(SCRIPT_DIR / ".matplotlib"))
-
 DEVICE = (
     "cuda"
     if torch.cuda.is_available()
@@ -31,7 +29,6 @@ DEVICE = (
 NUM_CLASSES = 37
 NUM_SEGMENTS = 3
 IN_CHANNELS = 3
-
 DEFAULT_DATA_DIR = SCRIPT_DIR / "data"
 DEFAULT_CHECKPOINT_DIR = SCRIPT_DIR / "checkpoints"
 CHECKPOINT_NAMES = {
@@ -50,14 +47,8 @@ MASK_COLOURS = np.array(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Run inference for Assignment-2 models."
-    )
-    parser.add_argument(
-        "--task",
-        required=True,
-        choices=("classification", "localization", "segmentation", "multitask"),
-    )
+    parser = argparse.ArgumentParser(description="Run inference for Assignment-2 models")
+    parser.add_argument("--task", required=True, choices=("classification", "localization", "segmentation", "multitask"),)
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--split", default="test", choices=("train", "val", "test"))
     parser.add_argument("--batch-size", type=int, default=8)
@@ -65,21 +56,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--device", default=DEVICE)
     parser.add_argument("--checkpoint-dir", type=Path, default=DEFAULT_CHECKPOINT_DIR)
-    parser.add_argument(
-        "--checkpoint-path",
-        type=Path,
-        default=None,
-        help="single-task checkpoint override.",
-    )
+    parser.add_argument("--checkpoint-path", type=Path, default=None, help="single-task checkpoint override",)
     parser.add_argument("--classifier-checkpoint", type=Path, default=None)
     parser.add_argument("--localizer-checkpoint", type=Path, default=None)
     parser.add_argument("--unet-checkpoint", type=Path, default=None)
-    parser.add_argument(
-        "--max-batches",
-        type=int,
-        default=None,
-        help="cap number of batches for quick smoke tests.",
-    )
     parser.add_argument("--save-dir", type=Path, default=SCRIPT_DIR / "outputs")
     parser.add_argument("--num-visuals", type=int, default=5)
     return parser.parse_args()
@@ -111,12 +91,8 @@ def build_model(args: argparse.Namespace):
     ckpt_dir = args.checkpoint_dir
 
     if args.task == "classification":
-        path = _resolve_path(
-            args.checkpoint_path, ckpt_dir / CHECKPOINT_NAMES["classification"]
-        )
-        model = _load_single(
-            VGG11Classifier(NUM_CLASSES, IN_CHANNELS, dropout_p=0.5), path, args.device
-        )
+        path = _resolve_path(args.checkpoint_path, ckpt_dir / CHECKPOINT_NAMES["classification"])
+        model = _load_single(VGG11Classifier(NUM_CLASSES, IN_CHANNELS, dropout_p=0.5), path, args.device)
         return model, {"classification": path}
 
     if args.task == "localization":
@@ -131,24 +107,15 @@ def build_model(args: argparse.Namespace):
         return model, {"localization": path}
 
     if args.task == "segmentation":
-        path = _resolve_path(
-            args.checkpoint_path, ckpt_dir / CHECKPOINT_NAMES["segmentation"]
-        )
+        path = _resolve_path(args.checkpoint_path, ckpt_dir / CHECKPOINT_NAMES["segmentation"])
         model = _load_single(
-            VGG11UNet(NUM_SEGMENTS, IN_CHANNELS, dropout_p=0.5), path, args.device
-        )
+            VGG11UNet(NUM_SEGMENTS, IN_CHANNELS, dropout_p=0.5), path, args.device)
         return model, {"segmentation": path}
 
     # for multitask, resolve each checkpoint independently
-    clf_path = _resolve_path(
-        args.classifier_checkpoint, ckpt_dir / CHECKPOINT_NAMES["classification"]
-    )
-    loc_path = _resolve_path(
-        args.localizer_checkpoint, ckpt_dir / CHECKPOINT_NAMES["localization"]
-    )
-    seg_path = _resolve_path(
-        args.unet_checkpoint, ckpt_dir / CHECKPOINT_NAMES["segmentation"]
-    )
+    clf_path = _resolve_path(args.classifier_checkpoint, ckpt_dir / CHECKPOINT_NAMES["classification"])
+    loc_path = _resolve_path(args.localizer_checkpoint, ckpt_dir / CHECKPOINT_NAMES["localization"])
+    seg_path = _resolve_path(args.unet_checkpoint, ckpt_dir / CHECKPOINT_NAMES["segmentation"])
     model = MultiTaskPerceptionModel(
         num_breeds=NUM_CLASSES,
         seg_classes=NUM_SEGMENTS,
@@ -217,9 +184,7 @@ def to_numpy(img_tensor: torch.Tensor) -> np.ndarray:
     return np.clip(img_tensor.detach().cpu().permute(1, 2, 0).numpy(), 0.0, 1.0)
 
 
-def draw_boxes(
-    ax, image: np.ndarray, gt_box: np.ndarray, pred_box: Optional[np.ndarray] = None
-) -> None:
+def draw_boxes(ax, image: np.ndarray, gt_box: np.ndarray, pred_box: Optional[np.ndarray] = None):
     ax.imshow(image)
 
     # convert cxcywh numpy arrays -> xyxy for matplotlib Rectangle
@@ -240,9 +205,7 @@ def draw_boxes(
     ax.axis("off")
 
 
-def save_visual(
-    task: str, sample: Dict, index: int, output_dir: Path, label_names: List[str]
-) -> None:
+def save_visual(task: str, sample: Dict, index: int, output_dir: Path, label_names: List[str]):
     output_dir.mkdir(parents=True, exist_ok=True)
     image = sample["image"]
     gt_lbl, pred_lbl = (
@@ -395,9 +358,7 @@ def main() -> None:
     args.checkpoint_dir = args.checkpoint_dir.expanduser().resolve()
     args.save_dir = args.save_dir.expanduser().resolve()
 
-    dataset = OxfordIIITPetDataset(
-        root_dir=str(args.data_dir), split=args.split, image_size=args.image_size
-    )
+    dataset = OxfordIIITPetDataset(root_dir=str(args.data_dir), split=args.split, image_size=args.image_size)
     loader = DataLoader(
         dataset,
         batch_size=args.batch_size,

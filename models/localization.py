@@ -6,15 +6,13 @@ from .layers import CustomDropout
 
 
 class VGG11Localizer(torch.nn.Module):
-    """VGG11-based localizer."""
+    """VGG11-based localizer"""
 
     def __init__(self, in_channels: int = 3, dropout_p: float = 0.5, image_size: int = 224):
-        """
-        Initialize the VGG11Localizer model.
-
+        """Initialize the VGG11Localizer model
         Args:
-            in_channels: Number of input channels.
-            dropout_p: Dropout probability for the localization head.
+            in_channels: Number of input channels
+            dropout_p: Dropout probability for the localization head
         """
         super(VGG11Localizer, self).__init__()
         self.in_channels = in_channels
@@ -34,13 +32,12 @@ class VGG11Localizer(torch.nn.Module):
         self.out = torch.nn.Linear(256, 4)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass for localization model.
+        """Forward pass for localization model
         Args:
-            x: Input tensor of shape [B, in_channels, H, W].
-
+            x: Input tensor of shape [B, in_channels, H, W]
         Returns:
             Bounding box coordinates [B, 4] in (x_center, y_center, width, height) format
-            in original image pixel space (not normalized values).
+            in original image pixel space (not normalized values)
         """
         x = self.encoder(x)
         # x = self.gap(x).flatten(1) # convert bs x 512 x 5 x 5 -> bs x 12800

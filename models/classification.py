@@ -1,5 +1,3 @@
-"""Classification components"""
-
 import torch
 
 from .vgg11 import VGG11Encoder
@@ -7,7 +5,7 @@ from .layers import CustomDropout
 
 
 class VGG11Classifier(torch.nn.Module):
-    """Full classifier = VGG11Encoder + ClassificationHead."""
+    """Full classifier = VGG11Encoder + ClassificationHead"""
 
     def __init__(
         self,

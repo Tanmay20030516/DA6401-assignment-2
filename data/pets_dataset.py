@@ -11,10 +11,7 @@ from torch.utils.data import Dataset
 
 
 class OxfordIIITPetDataset(Dataset):
-    """
-    Oxford-IIIT Pet dataset for classification, localization, and segmentation.
-    """
-
+    """Oxford-IIIT Pet dataset for classification, localization, and segmentation"""
     # trimap pixel values -> class indices (body=0, background=1, boundary=2)
     trimap_to_class = {1: 0, 2: 1, 3: 2}
     val_size = 0.1
@@ -35,17 +32,15 @@ class OxfordIIITPetDataset(Dataset):
 
     def __getitem__(self, idx: int) -> dict:
         """
-        Returns:
-            image              : float32 tensor [3, H, W], pixels in [0, 1]
-            class_label        : int64 scalar, 0-indexed breed id
-            bbox               : float32 [4], pixel-space (cx, cy, w, h)
-            segmentation_mask  : int64 [H, W], values in {0=bg, 1=body, 2=boundary}
+        returns:
+            image: [3, H, W] with pixels in [0, 1]
+            class_label: 0-indexed breed id
+            bbox: pixel-space (cx, cy, w, h)
+            segmentation_mask: [H, W] with values in {0=bg, 1=body, 2=boundary}
         """
         row = self.df.iloc[idx]
 
-        image_np = np.array(
-            Image.open(row["image_path"]).convert("RGB"), dtype=np.uint8
-        )
+        image_np = np.array(Image.open(row["image_path"]).convert("RGB"), dtype=np.uint8)
         mask_np = self._read_trimap(row["mask_path"]).astype(np.uint8)
 
         # bbox is stored normalised [xmin, ymin, xmax, ymax] (albumentations format)
@@ -54,7 +49,7 @@ class OxfordIIITPetDataset(Dataset):
         xmax = float(row["xmax"])
         ymax = float(row["ymax"])
 
-        result = self.transform(
+        result = self.transform( # apply the transformations
             image=image_np,
             mask=mask_np,
             bboxes=[(xmin, ymin, xmax, ymax)],
@@ -95,17 +90,13 @@ class OxfordIIITPetDataset(Dataset):
         if split in ("train", "val"):
             rows = cls._parse_split_file(
                 os.path.join(annot_dir, "trainval.txt"),
-                class_id_for,
-                image_dir,
-                trimap_dir,
-                xml_dir,
+                class_id_for, image_dir,
+                trimap_dir, xml_dir,
                 has_bbox=True,
             )
             df = pd.DataFrame(rows)
 
-            sss = StratifiedShuffleSplit(
-                n_splits=1, test_size=cls.val_size, random_state=cls.seed
-            )
+            sss = StratifiedShuffleSplit(n_splits=1, test_size=cls.val_size, random_state=cls.seed)
             train_idx, val_idx = next(sss.split(df, df["class_id"]))
             idx = train_idx if split == "train" else val_idx
             return df.iloc[idx].reset_index(drop=True)
@@ -113,10 +104,8 @@ class OxfordIIITPetDataset(Dataset):
         # test split
         rows = cls._parse_split_file(
             os.path.join(annot_dir, "test.txt"),
-            class_id_for,
-            image_dir,
-            trimap_dir,
-            xml_dir,
+            class_id_for, image_dir,
+            trimap_dir, xml_dir,
             has_bbox=False,
         )
         return pd.DataFrame(rows).reset_index(drop=True)
@@ -135,12 +124,8 @@ class OxfordIIITPetDataset(Dataset):
 
     @classmethod
     def _parse_split_file(
-        cls,
-        split_file: str,
-        class_id_for: dict,
-        image_dir: str,
-        trimap_dir: str,
-        xml_dir: str,
+        cls, split_file: str, class_id_for: dict,
+        image_dir: str, trimap_dir: str, xml_dir: str,
         has_bbox: bool,
     ) -> list:
         rows = []
@@ -170,14 +155,11 @@ class OxfordIIITPetDataset(Dataset):
 
                 rows.append(
                     {
-                        "image_path": image_path,
-                        "mask_path": mask_path,
+                        "image_path": image_path, "mask_path": mask_path,
                         "xml_path": xml_path if has_bbox else "not_found",
                         "class_id": class_id,
-                        "xmin": xmin,
-                        "ymin": ymin,
-                        "xmax": xmax,
-                        "ymax": ymax,
+                        "xmin": xmin, "ymin": ymin,
+                        "xmax": xmax, "ymax": ymax,
                     }
                 )
         return rows
@@ -202,7 +184,7 @@ class OxfordIIITPetDataset(Dataset):
                     ),
                     A.GaussianBlur(blur_limit=2, p=0.2),
                     # A.ToFloat(max_value=255.0),
-                    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), max_pixel_value=255.0, p=1.0)
+                    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), max_pixel_value=255.0, p=1.0),
                 ],
                 bbox_params=bbox_params,
             )
@@ -210,7 +192,8 @@ class OxfordIIITPetDataset(Dataset):
         return A.Compose(
             [
                 A.Resize(image_size, image_size),
-                A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), max_pixel_value=255.0, p=1.0),
+                A.Normalize(mean=(0.485, 0.456, 0.406), 
+                            std=(0.229, 0.224, 0.225), max_pixel_value=255.0, p=1.0),
             ],
             bbox_params=bbox_params,
         )
@@ -233,7 +216,7 @@ class OxfordIIITPetDataset(Dataset):
         xmin, xmax = sorted([np.clip(xmin, 0.0, 1.0), np.clip(xmax, 0.0, 1.0)])
         ymin, ymax = sorted([np.clip(ymin, 0.0, 1.0), np.clip(ymax, 0.0, 1.0)])
 
-        # degenerate box — treat as missing
+        # degenerate box, so treat as missing
         if xmax <= xmin or ymax <= ymin:
             return None
 
@@ -244,6 +227,7 @@ class OxfordIIITPetDataset(Dataset):
         if not os.path.exists(mask_path):
             return np.zeros((1, 1), dtype=np.int32)
 
+        # we extract one channel (the mask is given as 3 channel, but all channels has same vallues)
         raw = np.array(Image.open(mask_path).convert("L"), dtype=np.int32)
         mask = np.zeros_like(raw)
         for src, dst in cls.trimap_to_class.items():

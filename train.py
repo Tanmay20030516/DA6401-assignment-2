@@ -6,8 +6,6 @@ from typing import Dict
 
 import numpy as np
 import torch
-# import torch.nn as nn
-# import torch.optim as optim
 from sklearn.metrics import f1_score
 from torch.utils.data import DataLoader
 
@@ -69,7 +67,7 @@ class SegmentationLoss(torch.nn.Module):
  
  
 class CombinedLocalizationLoss(torch.nn.Module):
-    # iou loss alone kills gradients at init (negative w/h -> zero grad), so we pair it with mse
+    # iou loss alone kills gradients at init (negative w/h -> zero grad), so we pair it with mse/smooth l1
     def __init__(self, image_size=224, alpha=2.0, beta=1.0, use_l1=True):
         super().__init__()
         self.iou = IoULoss()
@@ -217,8 +215,8 @@ def cxcywh_to_xyxy(boxes: torch.Tensor) -> torch.Tensor:
 def box_iou(pred_boxes: torch.Tensor, target_boxes: torch.Tensor) -> torch.Tensor:
     p = cxcywh_to_xyxy(pred_boxes)
     t = cxcywh_to_xyxy(target_boxes)
-    tl = torch.maximum(p[:, :2], t[:, :2]) # top-left
-    br = torch.minimum(p[:, 2:], t[:, 2:])# bottom-right
+    tl = torch.maximum(p[:, :2], t[:, :2]) # top-left corner
+    br = torch.minimum(p[:, 2:], t[:, 2:]) # bottom-right corner
     wh = (br - tl).clamp(min=0.0)
     inter = wh[:, 0] * wh[:, 1]
     pred_area = (p[:, 2] - p[:, 0]).clamp(0) * (p[:, 3] - p[:, 1]).clamp(0)
@@ -308,7 +306,7 @@ def maybe_init_wandb(model, args):
     if not args.use_wandb:
         return None
     if wandb is None:
-        raise ImportError("wandb not installed. run without --use-wandb or install it.")
+        raise ImportError("wandb not installed. run without --use-wandb or pip install it")
     run = wandb.init(
         project=args.wandb_project,
         entity=args.wandb_entity,
@@ -350,7 +348,7 @@ def main() -> None:
  
     trainable_params = [p for p in model.parameters() if p.requires_grad]
     if not trainable_params:
-        raise RuntimeError("no trainable parameters after freeze strategy.")
+        raise RuntimeError("no trainable parameters after freeze strategy")
  
     optimizer = torch.optim.AdamW(trainable_params, lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-6)
