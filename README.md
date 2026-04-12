@@ -1,6 +1,6 @@
 # DA6401 Assignment 2- Building a Complete Visual Perception Pipeline  
 
-**Name:** Tanmay Gawande
+**Name:** Tanmay Gawande  
 **Roll Number:** DA25M030
 
 ## Links
